@@ -1,17 +1,8 @@
 /*!
  * lunar.js — 农历/干支/生肖/节气/节日 纯本地计算（1900–2100）
- * 无依赖，可在浏览器 / Node / uni-app 中直接使用（UMD）。
+ * 无依赖，可在浏览器 / Node / uni-app 中直接使用（ESM）。
  * 算法为公开通用的农历算法，不依赖网络。
  */
-(function (root, factory) {
-  if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
-  } else {
-    root.Lunar = factory();
-  }
-}(typeof self !== 'undefined' ? self : this, function () {
-  'use strict';
-
   // 1900–2100 农历数据表（闰月 + 大小月编码）
   var lunarInfo = [
     0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2, //1900-1909
@@ -211,7 +202,7 @@
     };
   }
 
-  return {
+  const Lunar = {
     solarToLunar: solarToLunar,
     getDateInfo: getDateInfo,
     yearGanZhi: yearGanZhi,
@@ -225,4 +216,10 @@
     GAN: GAN, ZHI: ZHI, ZODIAC: ZODIAC,
     LUNAR_MONTH: LUNAR_MONTH, LUNAR_DAY: LUNAR_DAY, SOLAR_TERMS: SOLAR_TERMS
   };
-}));
+
+  export default Lunar;
+  export {
+    solarToLunar, getDateInfo, yearGanZhi, monthGanZhi, dayGanZhi,
+    solarTerm, lunarFestival, solarFestival, lunarMonthName, lunarDayName,
+    GAN, ZHI, ZODIAC, LUNAR_MONTH, LUNAR_DAY, SOLAR_TERMS
+  };
