@@ -28,6 +28,7 @@
         @click="openDay(cell)"
       >
         <text class="solar">{{ cell.d }}</text>
+        <text v-if="cell.holiday" class="holiday" :class="cell.holidayCls">{{ cell.holiday }}</text>
         <text class="lunar">{{ cell.lunar }}</text>
         <text v-if="cell.mark" class="mark" :class="cell.markCls">{{ cell.mark }}</text>
       </view>
@@ -49,6 +50,7 @@
 <script>
 import Lunar from '@/utils/lunar.js'
 import { getNow } from '@/utils/weather.js'
+import { getHolidayType } from '@/utils/holiday.js'
 
 const WEEK = ['一', '二', '三', '四', '五', '六', '日']
 
@@ -116,7 +118,7 @@ export default {
       let cls = 'cell'
       if (dim) cls += ' dim'
       if (isToday) cls += ' today'
-      let lunar = '', mark = '', markCls = ''
+      let lunar = '', mark = '', markCls = '', holiday = '', holidayCls = ''
       if (info.supported) {
         lunar = info.lunarDayName
         if (info.solarTerm) { mark = info.solarTerm; markCls = 'term' }
@@ -124,7 +126,10 @@ export default {
         else if (info.solarFestival) { mark = info.solarFestival; markCls = 'fest' }
         else if (info.lunar.lDay === 1) lunar = info.lunarMonthName
       }
-      return { y, m, d, cls, lunar, mark, markCls }
+      const hType = getHolidayType(y, m, d)
+      if (hType === 'rest') { holiday = '休'; holidayCls = 'rest' }
+      else if (hType === 'work') { holiday = '班'; holidayCls = 'work' }
+      return { y, m, d, cls, lunar, mark, markCls, holiday, holidayCls }
     },
     prevMonth() { this.month--; if (this.month === 0) { this.month = 12; this.year-- } this.buildCells() },
     nextMonth() { this.month++; if (this.month === 13) { this.month = 1; this.year++ } this.buildCells() },
@@ -191,6 +196,7 @@ export default {
 .cell {
   width: 14.2857%; height: 104rpx; box-sizing: border-box; border-radius: 16rpx;
   display: flex; flex-direction: column; align-items: center; padding-top: 10rpx;
+  position: relative;
 }
 .cell:active { transform: scale(0.96); }
 .solar { font-size: 34rpx; font-weight: 600; line-height: 1.15; }
@@ -198,11 +204,15 @@ export default {
 .mark { font-size: 20rpx; margin-top: 4rpx; font-weight: 600; line-height: 1.2; white-space: nowrap; }
 .mark.term { color: var(--jade); }
 .mark.fest { color: var(--gold); }
+.holiday { position: absolute; top: 8rpx; right: 10rpx; font-size: 18rpx; font-weight: 600; line-height: 1; }
+.holiday.rest { color: var(--vermilion); }
+.holiday.work { color: var(--muted); }
 .cell.dim .solar { color: var(--muted); font-weight: 500; }
 .cell.dim .lunar { color: var(--muted); opacity: 0.6; }
 .cell.today { background: var(--vermilion); }
 .cell.today .solar, .cell.today .lunar, .cell.today .mark { color: #fff; }
 .cell.today .mark.term, .cell.today .mark.fest { color: #FFE3DB; }
+.cell.today .holiday { color: #FFE3DB; }
 
 .weather-card {
   margin-top: 28rpx; border: 1rpx solid var(--border); border-radius: 32rpx; background: var(--surface);

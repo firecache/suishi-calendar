@@ -79,11 +79,15 @@
   .cell .mark{font-size:10px; margin-top:2px; font-weight:600; line-height:1.2; white-space:nowrap;}
   .cell .mark.term{color:var(--jade);}
   .cell .mark.fest{color:var(--gold);}
+  .cell .holiday{position:absolute; top:3px; right:4px; font-size:9px; font-weight:600; line-height:1;}
+  .cell .holiday.rest{color:var(--vermilion);}
+  .cell .holiday.work{color:var(--muted);}
   .cell.dim .solar{color:var(--muted); font-weight:500;}
   .cell.dim .lunar{color:#C6BEB2;}
   .cell.today{background:var(--vermilion);}
   .cell.today .solar,.cell.today .lunar,.cell.today .mark{color:#fff;}
   .cell.today .mark.term,.cell.today .mark.fest{color:#FFE3DB;}
+  .cell.today .holiday{color:#FFE3DB;}
   .cell.selected:not(.today){background:var(--vermilion-soft); outline:1.5px solid var(--vermilion);}
   .cell.selected:not(.today) .solar{color:var(--vermilion);}
   .cell:hover:not(.today){background:var(--paper);}
@@ -109,6 +113,8 @@
   .day-hero .lunar-line .tag{font-size:12px; font-weight:600; padding:2px 8px; border-radius:10px; margin-left:6px; vertical-align:2px;}
   .day-hero .lunar-line .tag.term{color:var(--jade); background:rgba(74,124,89,.12);}
   .day-hero .lunar-line .tag.fest{color:var(--gold); background:rgba(169,128,31,.12);}
+  .day-hero .lunar-line .tag.rest{color:var(--vermilion); background:rgba(192,58,43,.12);}
+  .day-hero .lunar-line .tag.work{color:var(--muted); background:rgba(148,139,126,.16);}
   .gz-row{display:flex; justify-content:center; gap:8px; margin-top:12px; flex-wrap:wrap;}
   .gz-row .chip{font-size:12px; color:var(--ink-soft); border:1px solid var(--border); border-radius:14px; padding:4px 10px; background:var(--surface);}
   .gz-row .chip b{color:var(--ink); font-weight:600;}
@@ -432,6 +438,24 @@
   (function(){
     var Lunar = window.Lunar;
     var WEEK = ['一','二','三','四','五','六','日'];
+
+    // ---- 法定节假日与调休（来源：国务院办公厅历年通知）----
+    var HOLIDAY = {
+      '2024': { rest: '1-1 2-10 2-11 2-12 2-13 2-14 2-15 2-16 2-17 4-4 4-5 4-6 5-1 5-2 5-3 5-4 5-5 6-8 6-9 6-10 9-15 9-16 9-17 10-1 10-2 10-3 10-4 10-5 10-6 10-7'.split(' '), work: '2-4 2-18 4-7 4-28 5-11 9-14 9-29 10-12'.split(' ') },
+      '2025': { rest: '1-1 1-28 1-29 1-30 1-31 2-1 2-2 2-3 2-4 4-4 4-5 4-6 5-1 5-2 5-3 5-4 5-5 5-31 6-1 6-2 10-1 10-2 10-3 10-4 10-5 10-6 10-7 10-8'.split(' '), work: '1-26 2-8 4-27 9-28 10-11'.split(' ') },
+      '2026': { rest: '1-1 1-2 1-3 2-15 2-16 2-17 2-18 2-19 2-20 2-21 2-22 2-23 4-4 4-5 4-6 5-1 5-2 5-3 5-4 5-5 6-19 6-20 6-21 9-25 9-26 9-27 10-1 10-2 10-3 10-4 10-5 10-6 10-7'.split(' '), work: '1-4 2-14 2-28 5-9 9-20 10-10'.split(' ') }
+    };
+    var holidayRest = {}, holidayWork = {};
+    Object.keys(HOLIDAY).forEach(function(y){
+      HOLIDAY[y].rest.forEach(function(k){ holidayRest[y+'-'+k] = 1; });
+      HOLIDAY[y].work.forEach(function(k){ holidayWork[y+'-'+k] = 1; });
+    });
+    function getHolidayType(y, m, d){
+      var k = y+'-'+m+'-'+d;
+      if(holidayRest[k]) return 'rest';
+      if(holidayWork[k]) return 'work';
+      return null;
+    }
     var now = new Date();
     var state = {
       y: now.getFullYear(), m: now.getMonth() + 1,
@@ -535,8 +559,11 @@
         else if(info.solarFestival){ mark = info.solarFestival; markCls='fest'; }
         else if(info.lunar.lDay===1){ lunarTxt = info.lunarMonthName; }
       }
+      var hType = getHolidayType(y,m,d);
+      var holiday = hType==='rest' ? '<span class="holiday rest">休</span>' : (hType==='work' ? '<span class="holiday work">班</span>' : '');
       return '<div class="'+cls+'" data-d="'+y+'-'+m+'-'+d+'">'+
         '<span class="solar">'+d+'</span>'+
+        holiday+
         '<span class="lunar">'+lunarTxt+'</span>'+
         (mark? '<span class="mark '+markCls+'">'+mark+'</span>':'')+
       '</div>';
@@ -564,6 +591,8 @@
       } else {
         lunarLine = '农历信息暂不支持（超出 1900–2100）';
       }
+      var hType = getHolidayType(y,m,d);
+      var holidayTag = hType==='rest' ? '<span class="tag rest">休</span>' : (hType==='work' ? '<span class="tag work">班</span>' : '');
       var gz = info.supported ?
         '<div class="chip"><b>'+info.yearGanZhi+'年</b></div>'+
         '<div class="chip">'+info.monthGanZhi+'月</div>'+
@@ -588,7 +617,7 @@
         '<div class="day-hero">'+
           '<div class="big">'+d+'</div>'+
           '<div class="date-line">'+y+'年'+m+'月'+d+'日 · '+wd+'</div>'+
-          '<div class="lunar-line">'+lunarLine+tag+'</div>'+
+          '<div class="lunar-line">'+lunarLine+tag+holidayTag+'</div>'+
           '<div class="gz-row">'+gz+'</div>'+
         '</div>'+
         '<div class="weather-card">'+

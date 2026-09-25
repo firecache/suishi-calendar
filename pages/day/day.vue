@@ -8,6 +8,7 @@
       <view class="lunar-line">
         <text>{{ lunarLine }}</text>
         <text v-if="tag" class="tag" :class="tagCls">{{ tag }}</text>
+        <text v-if="holiday" class="tag" :class="holidayCls">{{ holiday }}</text>
       </view>
       <view class="gz-row" v-if="info && info.supported">
         <text class="chip">{{ info.yearGanZhi }}年</text>
@@ -43,6 +44,7 @@
 <script>
 import Lunar from '@/utils/lunar.js'
 import { getNow, getForecast7d } from '@/utils/weather.js'
+import { getHolidayType } from '@/utils/holiday.js'
 
 const WEEK = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -54,6 +56,7 @@ export default {
       m: new Date().getMonth() + 1,
       d: new Date().getDate(),
       info: null,
+      holidayType: null,
       weather: { icon: '🌤', text: '', temp: '--', feels: '--', humidity: '--', windDir: '', windScale: '', aqiText: '' },
       forecast: []
     }
@@ -75,6 +78,12 @@ export default {
     tagCls() {
       if (!this.info) return ''
       return this.info.solarTerm ? 'term' : 'fest'
+    },
+    holiday() {
+      return this.holidayType === 'rest' ? '休' : this.holidayType === 'work' ? '班' : ''
+    },
+    holidayCls() {
+      return this.holidayType === 'rest' ? 'rest' : 'work'
     }
   },
   onLoad(options) {
@@ -86,6 +95,7 @@ export default {
       this.d = parseInt(options.d)
     }
     this.info = Lunar.getDateInfo(this.y, this.m, this.d)
+    this.holidayType = getHolidayType(this.y, this.m, this.d)
     this.loadWeather()
     this.loadForecast()
   },
@@ -136,6 +146,8 @@ export default {
 .tag { font-size: 24rpx; font-weight: 600; padding: 4rpx 16rpx; border-radius: 20rpx; margin-left: 12rpx; }
 .tag.term { color: var(--jade); background: rgba(74, 124, 89, 0.12); }
 .tag.fest { color: var(--gold); background: rgba(169, 128, 31, 0.12); }
+.tag.rest { color: var(--vermilion); background: rgba(192, 58, 43, 0.12); }
+.tag.work { color: var(--muted); background: rgba(148, 139, 126, 0.16); }
 .gz-row { display: flex; justify-content: center; gap: 16rpx; margin-top: 24rpx; flex-wrap: wrap; }
 .chip { font-size: 24rpx; color: var(--ink-soft); border: 1rpx solid var(--border); border-radius: 28rpx; padding: 8rpx 20rpx; background: var(--surface); }
 
