@@ -1,0 +1,25 @@
+/* uni.scss — 全局 SCSS 变量（编译期）
+   运行时主题（深浅色）见 App.vue 中的 CSS 变量。
+   组件样式统一使用 CSS 变量 var(--xxx)，此文件仅作编译期常量与 HBuilderX 兼容。 */
+
+/* 品牌色板（浅色） */
+$suishi-ink: #1F1B16;
+$suishi-ink-soft: #5C554B;
+$suishi-muted: #948B7E;
+$suishi-paper: #FAF7F2;
+$suishi-surface: #FFFFFF;
+$suishi-border: #E7E0D4;
+$suishi-vermilion: #C03A2B;
+$suishi-vermilion-soft: #F7E4E0;
+$suishi-jade: #4A7C59;
+$suishi-gold: #A9801F;
+$suishi-cold: #3B7CB8;
+$suishi-hot: #C0392B;
+
+/* uni-app 内置变量 */
+$uni-color-primary: #C03A2B;
+$uni-color-success: #4A7C59;
+$uni-color-warning: #A9801F;
+$uni-color-error: #C0392B;
+$uni-text-color: #1F1B16;
+$uni-bg-color: #FAF7F2;
