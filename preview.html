@@ -136,6 +136,17 @@
   .f-temp .lo{color:var(--cold);}
   .f-temp .hi{color:var(--hot);}
   .f-temp .slash{color:var(--muted); font-weight:400;}
+  .w-actions{display:flex; align-items:center; gap:2px;}
+  .w-head .w-city{cursor:pointer;}
+  .city-picker{position:absolute; inset:0; z-index:20; background:var(--paper); display:none; flex-direction:column; padding:20px 16px; box-sizing:border-box; overflow-y:auto;}
+  .city-picker.open{display:flex;}
+  .cp-head{display:flex; align-items:center; justify-content:space-between; padding:6px 4px 16px;}
+  .cp-head span{font-size:17px; font-weight:700;}
+  .cp-close{border:none; background:none; font-size:20px; color:var(--muted); cursor:pointer; padding:0 4px;}
+  .cp-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .cp-item{padding:12px 0; border:1px solid var(--border); background:var(--surface); border-radius:12px; font-size:14px; color:var(--ink); cursor:pointer;}
+  .cp-item.cur{background:var(--vermilion); color:#fff; border-color:var(--vermilion);}
+  .cp-item:hover{background:var(--vermilion-soft);}
 
   /* 天气卡 */
   .weather-card{
@@ -503,10 +514,11 @@
       return null;
     }
     var now = new Date();
+    var CITIES = ['杭州','北京','上海','广州','深圳','成都','武汉','西安','南京','重庆','天津','苏州','青岛','厦门','长沙','郑州','昆明','合肥','福州','济南'];
     var state = {
       y: now.getFullYear(), m: now.getMonth() + 1,
       sel: {y: now.getFullYear(), m: now.getMonth()+1, d: now.getDate()},
-      screen: 'cal', weekStart: 1 // 1=周一
+      screen: 'cal', weekStart: 1, city: '杭州' // 1=周一
     };
 
     // ---- 天气（模拟，确定性伪随机）----
@@ -652,6 +664,20 @@
       renderCal();
     }
 
+    // ---- 城市选择 & 定位（演示） ----
+    function cityPickerHtml(cur){
+      var btns = CITIES.map(function(c){ return '<button class="cp-item'+(c===cur?' cur':'')+'" data-cp="'+c+'">'+c+'</button>'; }).join('');
+      return '<div class="city-picker"><div class="cp-head"><span>选择城市</span><button class="cp-close" data-cpc="1">✕</button></div><div class="cp-grid">'+btns+'</div></div>';
+    }
+    function locateDemo(){
+      if(!navigator.geolocation){ alert('当前环境不支持定位'); return; }
+      navigator.geolocation.getCurrentPosition(function(pos){
+        alert('已定位到当前位置\n坐标 ' + pos.coords.latitude.toFixed(2) + ', ' + pos.coords.longitude.toFixed(2) + '\n\n演示模式无法反查城市名；App 内真实模式会通过逆地理编码显示城市。');
+      }, function(){
+        alert('定位失败：请允许定位权限');
+      });
+    }
+
     // ---- 天气渲染 ----
     function renderWeather(){
       var el = document.getElementById('screen-weather');
@@ -668,7 +694,9 @@
           '<div class="f-temp"><span class="lo">'+fw.lo+'°</span><span class="slash">/</span><span class="hi">'+fw.hi+'°</span></div></div>';
       }
       el.innerHTML =
-        '<div class="w-head"><span class="w-city">杭州</span><span class="w-gear" data-set="1">⚙</span></div>'+
+        '<div class="w-head"><span class="w-city" data-city="1">'+state.city+' ▾</span>'+
+        '<span class="w-actions"><span class="w-gear" data-loc="1">📍</span><span class="w-gear" data-set="1">⚙</span></span></div>'+
+        cityPickerHtml(state.city)+
         '<div class="w-hero">'+
           '<div class="w-hero-icon">'+w.icon+'</div>'+
           '<div class="w-hero-temp">'+w.hi+'°</div>'+
@@ -684,6 +712,15 @@
         '<div class="forecast">'+fcHtml+'</div>';
       el.querySelectorAll('[data-set]').forEach(function(b){
         b.onclick=function(){ renderSet(); switchScreen('set'); };
+      });
+      var cb = el.querySelector('[data-city]');
+      if(cb) cb.onclick=function(){ el.querySelector('.city-picker').classList.add('open'); };
+      var lb = el.querySelector('[data-loc]');
+      if(lb) lb.onclick=function(){ locateDemo(); };
+      var cc = el.querySelector('[data-cpc]');
+      if(cc) cc.onclick=function(){ el.querySelector('.city-picker').classList.remove('open'); };
+      el.querySelectorAll('[data-cp]').forEach(function(b){
+        b.onclick=function(){ state.city = b.getAttribute('data-cp'); renderWeather(); };
       });
     }
 

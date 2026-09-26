@@ -47,8 +47,16 @@
       <swiper-item>
         <scroll-view scroll-y class="tab-panel weather-panel">
           <view class="w-head">
-            <text class="w-city">{{ city }}</text>
-            <text class="w-gear" @click="openSettings">⚙</text>
+            <picker mode="selector" :range="cities" @change="onCityChange">
+              <view class="w-city-row">
+                <text class="w-city">{{ city }}</text>
+                <text class="w-caret">▾</text>
+              </view>
+            </picker>
+            <view class="w-actions">
+              <text class="w-gear" @click="locate">📍</text>
+              <text class="w-gear" @click="openSettings">⚙</text>
+            </view>
           </view>
 
           <view class="w-hero">
@@ -115,8 +123,9 @@
 
 <script>
 import Lunar from '@/utils/lunar.js'
-import { getNow, getForecast7d } from '@/utils/weather.js'
+import { getNow, getForecast7d, reverseGeoCity } from '@/utils/weather.js'
 import { getHolidayType } from '@/utils/holiday.js'
+import config from '@/utils/config.js'
 
 const WEEK = ['一', '二', '三', '四', '五', '六', '日']
 const WEEK7 = ['日', '一', '二', '三', '四', '五', '六']
@@ -132,6 +141,7 @@ export default {
       today: { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() },
       weekStart: 1,
       cells: [],
+      cities: config.CITIES,
       city: '杭州',
       weather: { icon: '🌤', text: '加载中', temp: '--', feels: '--', humidity: '--', windDir: '', windScale: '', aqiText: '' },
       forecast: []
@@ -226,6 +236,35 @@ export default {
     },
     onSwipeChange(e) {
       this.tab = e.detail.current
+    },
+    onCityChange(e) {
+      const c = this.cities[parseInt(e.detail.value)]
+      this.city = c
+      uni.setStorageSync('city', c)
+      getApp().globalData.city = c
+      this.loadWeather()
+    },
+    locate() {
+      uni.getLocation({
+        type: 'gcj02',
+        success: async (res) => {
+          const lat = res.latitude
+          const lon = res.longitude
+          const name = await reverseGeoCity(lat, lon)
+          if (name) {
+            this.city = name
+            uni.setStorageSync('city', name)
+            getApp().globalData.city = name
+            uni.showToast({ title: '已定位到 ' + name, icon: 'none' })
+            this.loadWeather()
+          } else {
+            uni.showToast({ title: '定位成功，请在设置切换真实模式显示城市', icon: 'none' })
+          }
+        },
+        fail: () => {
+          uni.showToast({ title: '定位失败，请检查定位权限', icon: 'none' })
+        }
+      })
     },
     async loadWeather() {
       try {
@@ -323,7 +362,10 @@ export default {
 
 /* ===== 天气 ===== */
 .w-head { display: flex; align-items: center; justify-content: space-between; padding: 28rpx 8rpx 4rpx; }
+.w-city-row { display: flex; align-items: center; gap: 8rpx; }
 .w-city { font-size: 36rpx; font-weight: 700; }
+.w-caret { font-size: 28rpx; color: var(--muted); font-weight: 600; }
+.w-actions { display: flex; align-items: center; gap: 8rpx; }
 .w-gear { font-size: 40rpx; color: var(--muted); padding: 0 8rpx; }
 
 .w-hero { display: flex; flex-direction: column; align-items: center; padding: 20rpx 0 8rpx; }

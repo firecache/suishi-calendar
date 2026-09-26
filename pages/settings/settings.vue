@@ -1,5 +1,6 @@
 <template>
   <view class="page" :class="themeClass" :style="{ paddingTop: statusBarHeight + 'px' }">
+    <view class="back-btn" @click="goBack">‹ 返回</view>
     <view class="page-title">设置</view>
 
     <view class="group">
@@ -68,7 +69,7 @@ export default {
   data() {
     return {
       statusBarHeight: 20,
-      cities: ['杭州', '北京', '上海', '广州', '深圳', '成都', '武汉', '西安', '南京', '重庆', '天津', '苏州', '青岛', '厦门', '长沙', '郑州', '昆明', '合肥', '福州', '济南'],
+      cities: config.CITIES,
       city: config.DEFAULT_CITY,
       weekStart: config.WEEK_START,
       theme: 'system',
@@ -92,6 +93,7 @@ export default {
     this.qweatherKey = uni.getStorageSync('qweatherKey') || config.QWEATHER_KEY
   },
   methods: {
+    goBack() { uni.navigateBack() },
     onCityChange(e) {
       this.city = this.cities[parseInt(e.detail.value)]
       uni.setStorageSync('city', this.city)
@@ -126,6 +128,11 @@ export default {
   color: var(--ink);
   box-sizing: border-box;
   padding: 24rpx 32rpx 48rpx;
+}
+.back-btn {
+  display: inline-flex; align-items: center; margin: 20rpx 0 0 8rpx; padding: 14rpx 28rpx;
+  border: 1rpx solid var(--border); background: var(--surface); border-radius: 32rpx;
+  font-size: 26rpx; color: var(--ink-soft);
 }
 .page-title { font-size: 40rpx; font-weight: 700; padding: 28rpx 8rpx 20rpx; }
 

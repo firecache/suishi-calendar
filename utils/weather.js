@@ -132,5 +132,17 @@ export async function getForecast7d(city) {
   }
 }
 
+// 逆地理编码：经纬度 → 城市名（真实模式 + key 时可用；demo/无 key 返回 null）
+export async function reverseGeoCity(lat, lon) {
+  if (useDemo() || !apiKey()) return null
+  try {
+    const res = await request(GEO_URL, { location: `${lon},${lat}`, key: apiKey() })
+    const loc = res.location && res.location[0]
+    return loc && loc.name ? loc.name : null
+  } catch (e) {
+    return null
+  }
+}
+
 // 图标辅助（供页面复用）
 export { iconOf }
