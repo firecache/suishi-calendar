@@ -56,7 +56,8 @@ function forecastFromMock() {
     const m = mockDay(t.getFullYear(), t.getMonth() + 1, t.getDate())
     list.push({
       date: `${t.getMonth() + 1}-${t.getDate()}`,
-      text: m.text, icon: m.icon, tempMax: m.tempMax, tempMin: m.tempMin
+      text: m.text, icon: m.icon, tempMax: m.tempMax, tempMin: m.tempMin,
+      windDir: m.windDir, windScale: m.windScale, humidity: m.humidity
     })
   }
   return list
@@ -123,7 +124,8 @@ export async function getForecast7d(city) {
     const res = await request(FORECAST_URL, { location: id, key: apiKey() })
     return (res.daily || []).map((it) => ({
       date: `${it.fxMonth}-${it.fxDate}`,
-      text: it.textDay, icon: iconOf(it.textDay), tempMax: it.tempMax, tempMin: it.tempMin
+      text: it.textDay, icon: iconOf(it.textDay), tempMax: it.tempMax, tempMin: it.tempMin,
+      windDir: it.windDirDay, windScale: it.windScaleDay, humidity: it.humidity
     }))
   } catch (e) {
     return forecastFromMock()

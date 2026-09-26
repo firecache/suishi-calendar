@@ -107,6 +107,36 @@
   .ym-picker .ymp-months button:hover{background:var(--vermilion-soft);}
   .ym-picker .ymp-close{align-self:center; margin-top:18px; padding:10px 34px; border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); border-radius:24px; font-size:15px; cursor:pointer;}
 
+  /* 天气页 */
+  .cal-head .nav button.gear{font-size:15px;}
+  .w-head{display:flex; align-items:center; justify-content:space-between; padding:14px 4px 4px;}
+  .w-head .w-city{font-size:20px; font-weight:700;}
+  .w-head .w-gear{font-size:20px; color:var(--muted); cursor:pointer; padding:0 4px;}
+  .w-hero{display:flex; flex-direction:column; align-items:center; padding:12px 0 4px;}
+  .w-hero-icon{font-size:64px; line-height:1;}
+  .w-hero-temp{font-size:72px; font-weight:600; line-height:1.05; font-family:"Iowan Old Style","Songti SC","Noto Serif SC",serif; font-variant-numeric:tabular-nums;}
+  .w-hero-desc{font-size:15px; color:var(--ink-soft); margin-top:6px;}
+  .w-metrics{display:flex; margin-top:14px; border:1px solid var(--border); border-radius:12px; background:var(--surface); overflow:hidden;}
+  .w-metric{flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 0;}
+  .w-metric + .w-metric{border-left:1px solid var(--border);}
+  .w-m-label{font-size:11px; color:var(--muted);}
+  .w-m-val{font-size:13px; font-weight:600; color:var(--ink);}
+  .sec-title{font-size:13px; color:var(--muted); margin:18px 4px 8px; font-weight:600; letter-spacing:.05em;}
+  .f-row{display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--surface); border-bottom:1px solid var(--border);}
+  .f-row:first-child{border-radius:16px 16px 0 0;}
+  .f-row:last-child{border-radius:0 0 16px 16px; border-bottom:none;}
+  .f-day{width:60px; display:flex; flex-direction:column;}
+  .f-week{font-size:13px; font-weight:600; color:var(--ink);}
+  .f-date{font-size:11px; color:var(--muted); margin-top:1px;}
+  .f-icon{font-size:22px; width:30px; text-align:center;}
+  .f-mid{flex:1; display:flex; flex-direction:column; gap:2px;}
+  .f-text{font-size:13px; color:var(--ink); font-weight:500;}
+  .f-meta{font-size:11px; color:var(--ink-soft);}
+  .f-temp{display:flex; align-items:baseline; gap:4px; font-weight:600; font-size:13px; font-variant-numeric:tabular-nums;}
+  .f-temp .lo{color:var(--cold);}
+  .f-temp .hi{color:var(--hot);}
+  .f-temp .slash{color:var(--muted); font-weight:400;}
+
   /* 天气卡 */
   .weather-card{
     margin-top:14px; border:1px solid var(--border); border-radius:16px; background:var(--surface);
@@ -199,15 +229,16 @@
       <div class="screens">
         <!-- 月历 -->
         <div class="screen active" id="screen-cal"></div>
+        <!-- 天气 -->
+        <div class="screen" id="screen-weather"></div>
         <!-- 日详情 -->
         <div class="screen" id="screen-day"></div>
         <!-- 设置 -->
         <div class="screen" id="screen-set"></div>
       </div>
       <div class="tabbar">
-        <div class="tab active" data-screen="cal"><span class="ico">▦</span>月历</div>
-        <div class="tab" data-screen="day"><span class="ico">☀</span>详情</div>
-        <div class="tab" data-screen="set"><span class="ico">☰</span>设置</div>
+        <div class="tab active" data-screen="cal"><span class="ico">▦</span>日历</div>
+        <div class="tab" data-screen="weather"><span class="ico">☀</span>天气</div>
       </div>
     </div>
 
@@ -532,7 +563,6 @@
       while(cells.length < 42) cells.push(cellHtml(ny, nm, nd++, true));
 
       var week = WEEK.map(function(w,i){ return '<span class="'+(i>=5?'weekend':'')+'">'+w+'</span>'; }).join('');
-      var weather = mockWeather(y,m,state.sel.d);
 
       el.innerHTML =
         '<div class="cal-head">'+
@@ -541,19 +571,11 @@
             '<button data-nav="-1">‹</button>'+
             '<button class="today-btn" data-today="1">今</button>'+
             '<button data-nav="1">›</button>'+
+            '<button class="gear" data-set="1">⚙</button>'+
           '</div>'+
         '</div>'+
         '<div class="week-row">'+week+'</div>'+
         '<div class="grid">'+cells.join('')+'</div>'+
-        '<div class="weather-card" data-open-day="'+state.sel.y+'-'+state.sel.m+'-'+state.sel.d+'">'+
-          '<span class="w-icon">'+weather.icon+'</span>'+
-          '<span class="w-temp">'+weather.hi+'<sup>°</sup></span>'+
-          '<div class="w-info">'+
-            '<span class="w-desc">'+weather.kind+' · '+weather.lo+'°~'+weather.hi+'°</span>'+
-            '<span class="w-meta">体感'+weather.feels+'° · 湿度'+weather.humidity+'% · '+weather.wind+' · 空气'+weather.aqiTxt+'</span>'+
-          '</div>'+
-          '<span class="w-city">杭州</span>'+
-        '</div>'+
         '<div class="ym-picker">'+
           '<div class="ymp-head"><button data-ymy="-1">‹</button><span class="ymp-year">'+y+'年</span><button data-ymy="1">›</button></div>'+
           '<div class="ymp-months">'+ympMonthsHtml(m)+'</div>'+
@@ -595,6 +617,9 @@
       el.querySelectorAll('[data-ymc]').forEach(function(b){
         b.onclick=function(){ el.querySelector('.ym-picker').classList.remove('open'); };
       });
+      el.querySelectorAll('[data-set]').forEach(function(b){
+        b.onclick=function(){ renderSet(); switchScreen('set'); };
+      });
     }
 
     function cellHtml(y,m,d,dim){
@@ -625,6 +650,41 @@
       if(state.m===0){state.m=12;state.y--;}
       if(state.m===13){state.m=1;state.y++;}
       renderCal();
+    }
+
+    // ---- 天气渲染 ----
+    function renderWeather(){
+      var el = document.getElementById('screen-weather');
+      var nd = new Date();
+      var w = mockWeather(nd.getFullYear(), nd.getMonth()+1, nd.getDate());
+      var fcHtml = '';
+      for(var i=0;i<7;i++){
+        var dd = new Date(nd.getFullYear(), nd.getMonth(), nd.getDate()+i);
+        var fw = mockWeather(dd.getFullYear(), dd.getMonth()+1, dd.getDate());
+        var fdLabel = i===0 ? '今天' : WEEK[(dd.getDay()-state.weekStart+7)%7];
+        fcHtml += '<div class="f-row"><div class="f-day"><span class="f-week">'+fdLabel+'</span><span class="f-date">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</span></div>'+
+          '<span class="f-icon">'+fw.icon+'</span>'+
+          '<div class="f-mid"><span class="f-text">'+fw.kind+'</span><span class="f-meta">'+fw.wind+' · 湿度 '+fw.humidity+'%</span></div>'+
+          '<div class="f-temp"><span class="lo">'+fw.lo+'°</span><span class="slash">/</span><span class="hi">'+fw.hi+'°</span></div></div>';
+      }
+      el.innerHTML =
+        '<div class="w-head"><span class="w-city">杭州</span><span class="w-gear" data-set="1">⚙</span></div>'+
+        '<div class="w-hero">'+
+          '<div class="w-hero-icon">'+w.icon+'</div>'+
+          '<div class="w-hero-temp">'+w.hi+'°</div>'+
+          '<div class="w-hero-desc">'+w.kind+' · 体感 '+w.feels+'°</div>'+
+        '</div>'+
+        '<div class="w-metrics">'+
+          '<div class="w-metric"><span class="w-m-label">体感</span><span class="w-m-val">'+w.feels+'°</span></div>'+
+          '<div class="w-metric"><span class="w-m-label">湿度</span><span class="w-m-val">'+w.humidity+'%</span></div>'+
+          '<div class="w-metric"><span class="w-m-label">风力</span><span class="w-m-val">'+w.wind+'</span></div>'+
+          '<div class="w-metric"><span class="w-m-label">空气</span><span class="w-m-val">'+w.aqiTxt+'</span></div>'+
+        '</div>'+
+        '<div class="sec-title">近 7 天预报</div>'+
+        '<div class="forecast">'+fcHtml+'</div>';
+      el.querySelectorAll('[data-set]').forEach(function(b){
+        b.onclick=function(){ renderSet(); switchScreen('set'); };
+      });
     }
 
     // ---- 日详情渲染 ----
@@ -689,6 +749,7 @@
     function renderSet(){
       var el = document.getElementById('screen-set');
       el.innerHTML =
+        '<button class="back-btn" id="back-set">‹ 返回</button>'+
         '<div class="set-group"><div class="set-title">通用</div><div class="set-list">'+
           '<div class="set-item"><span>城市</span><span class="val">杭州 ›</span></div>'+
           '<div class="set-item"><span>天气数据源</span><span class="val">演示模式 ›</span></div>'+
@@ -699,6 +760,8 @@
           '<div class="set-item"><span>版本</span><span class="val">1.0.0</span></div>'+
           '<div class="set-item"><span>隐私政策</span><span class="chev">›</span></div>'+
         '</div></div>';
+      var bs = el.querySelector('#back-set');
+      if(bs) bs.onclick=function(){ switchScreen('cal'); };
     }
 
     function switchScreen(name){
@@ -707,23 +770,28 @@
       document.getElementById('screen-'+name).classList.add('active');
       document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-screen')===name); });
       if(name==='day') renderDay();
+      if(name==='weather') renderWeather();
       if(name==='set') renderSet();
     }
     document.querySelectorAll('.tab').forEach(function(t){
       t.onclick=function(){ switchScreen(t.getAttribute('data-screen')); };
     });
 
-    // 触摸左右滑动切月
+    // 触摸左右滑动切换 日历↔天气
     var touchX=null;
-    document.getElementById('screen-cal').addEventListener('touchstart',function(e){touchX=e.touches[0].clientX;}, {passive:true});
-    document.getElementById('screen-cal').addEventListener('touchend',function(e){
+    var screensEl = document.querySelector('.screens');
+    screensEl.addEventListener('touchstart',function(e){touchX=e.touches[0].clientX;}, {passive:true});
+    screensEl.addEventListener('touchend',function(e){
       if(touchX===null) return;
       var dx = e.changedTouches[0].clientX - touchX;
-      if(Math.abs(dx)>50) shiftMonth(dx>0?-1:1);
       touchX=null;
+      if(Math.abs(dx)<50) return;
+      if(state.screen==='cal' && dx<0) switchScreen('weather');
+      else if(state.screen==='weather' && dx>0) switchScreen('cal');
     }, {passive:true});
 
     renderCal();
+    renderWeather();
     renderDay();
     renderSet();
   })();

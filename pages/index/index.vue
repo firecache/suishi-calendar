@@ -1,75 +1,140 @@
 <template>
   <view class="page" :class="themeClass" :style="{ paddingTop: statusBarHeight + 'px' }">
-    <!-- 头部 -->
-    <view class="cal-head">
-      <picker mode="date" fields="month" :value="pickerValue" :start="'1900-01'" :end="'2100-12'" @change="onPickMonth">
-        <view class="ym">
-          <view class="ym-row">
-            <text class="ym-title">{{ year }}年{{ month }}月</text>
-            <text class="ym-caret">▾</text>
+    <swiper class="swiper" :current="tab" :duration="250" @change="onSwipeChange">
+      <!-- ① 日历 -->
+      <swiper-item>
+        <scroll-view scroll-y class="tab-panel">
+          <view class="cal-head">
+            <picker mode="date" fields="month" :value="pickerValue" :start="'1900-01'" :end="'2100-12'" @change="onPickMonth">
+              <view class="ym">
+                <view class="ym-row">
+                  <text class="ym-title">{{ year }}年{{ month }}月</text>
+                  <text class="ym-caret">▾</text>
+                </view>
+                <text class="ym-lunar">{{ lunarYearLabel }}</text>
+              </view>
+            </picker>
+            <view class="nav">
+              <view class="nav-btn" @click="prevMonth">‹</view>
+              <view class="today-btn" @click="goToday">今</view>
+              <view class="nav-btn" @click="nextMonth">›</view>
+              <view class="nav-btn gear" @click="openSettings">⚙</view>
+            </view>
           </view>
-          <text class="ym-lunar">{{ lunarYearLabel }}</text>
-        </view>
-      </picker>
-      <view class="nav">
-        <view class="nav-btn" @click="prevMonth">‹</view>
-        <view class="today-btn" @click="goToday">今</view>
-        <view class="nav-btn" @click="nextMonth">›</view>
-      </view>
-    </view>
 
-    <!-- 星期行 -->
-    <view class="week-row">
-      <text v-for="(w, i) in weekLabels" :key="i" class="week-item" :class="{ weekend: i >= 5 }">{{ w }}</text>
-    </view>
+          <view class="week-row">
+            <text v-for="(w, i) in weekLabels" :key="i" class="week-item" :class="{ weekend: i >= 5 }">{{ w }}</text>
+          </view>
 
-    <!-- 6×7 网格 -->
-    <view class="grid">
-      <view
-        v-for="(cell, i) in cells"
-        :key="i"
-        class="cell"
-        :class="cell.cls"
-        @click="openDay(cell)"
-      >
-        <text class="solar">{{ cell.d }}</text>
-        <text v-if="cell.holiday" class="holiday" :class="cell.holidayCls">{{ cell.holiday }}</text>
-        <text class="lunar">{{ cell.lunar }}</text>
-        <text v-if="cell.mark" class="mark" :class="cell.markCls">{{ cell.mark }}</text>
-      </view>
-    </view>
+          <view class="grid">
+            <view
+              v-for="(cell, i) in cells"
+              :key="i"
+              class="cell"
+              :class="cell.cls"
+              @click="openDay(cell)"
+            >
+              <text class="solar">{{ cell.d }}</text>
+              <text v-if="cell.holiday" class="holiday" :class="cell.holidayCls">{{ cell.holiday }}</text>
+              <text class="lunar">{{ cell.lunar }}</text>
+              <text v-if="cell.mark" class="mark" :class="cell.markCls">{{ cell.mark }}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </swiper-item>
 
-    <!-- 今日天气卡 -->
-    <view class="weather-card" @click="openToday">
-      <text class="w-icon">{{ weather.icon }}</text>
-      <text class="w-temp">{{ weather.temp }}°</text>
-      <view class="w-info">
-        <text class="w-desc">{{ weather.text }} · {{ weather.temp }}°</text>
-        <text class="w-meta">体感{{ weather.feels }}° · 湿度{{ weather.humidity }}% · {{ weather.windDir }}{{ weather.windScale }}<text v-if="weather.aqiText"> · 空气{{ weather.aqiText }}</text></text>
+      <!-- ② 天气 -->
+      <swiper-item>
+        <scroll-view scroll-y class="tab-panel weather-panel">
+          <view class="w-head">
+            <text class="w-city">{{ city }}</text>
+            <text class="w-gear" @click="openSettings">⚙</text>
+          </view>
+
+          <view class="w-hero">
+            <text class="w-hero-icon">{{ weather.icon }}</text>
+            <text class="w-hero-temp serif">{{ weather.temp }}°</text>
+            <text class="w-hero-desc">{{ weather.text }} · 体感 {{ weather.feels }}°</text>
+          </view>
+
+          <view class="w-metrics">
+            <view class="w-metric">
+              <text class="w-m-label">体感</text>
+              <text class="w-m-val">{{ weather.feels }}°</text>
+            </view>
+            <view class="w-metric">
+              <text class="w-m-label">湿度</text>
+              <text class="w-m-val">{{ weather.humidity }}%</text>
+            </view>
+            <view class="w-metric">
+              <text class="w-m-label">风力</text>
+              <text class="w-m-val">{{ weather.windDir }}{{ weather.windScale }}</text>
+            </view>
+            <view class="w-metric">
+              <text class="w-m-label">空气</text>
+              <text class="w-m-val">{{ weather.aqiText || '—' }}</text>
+            </view>
+          </view>
+
+          <view class="sec-title">近 7 天预报</view>
+          <view class="forecast">
+            <view v-for="(f, i) in forecast" :key="i" class="f-row">
+              <view class="f-day">
+                <text class="f-week">{{ f.week }}</text>
+                <text class="f-date">{{ f.date }}</text>
+              </view>
+              <text class="f-icon">{{ f.icon }}</text>
+              <view class="f-mid">
+                <text class="f-text">{{ f.text }}</text>
+                <text class="f-meta">{{ f.windDir }}{{ f.windScale }} · 湿度 {{ f.humidity }}%</text>
+              </view>
+              <view class="f-temp">
+                <text class="lo">{{ f.tempMin }}°</text>
+                <text class="slash">/</text>
+                <text class="hi">{{ f.tempMax }}°</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+      </swiper-item>
+    </swiper>
+
+    <!-- 底部 tab -->
+    <view class="tabbar">
+      <view class="tab" :class="{ active: tab === 0 }" @click="switchTab(0)">
+        <text class="tab-ico">▦</text>
+        <text>日历</text>
       </view>
-      <text class="w-city">{{ weather.city }}</text>
+      <view class="tab" :class="{ active: tab === 1 }" @click="switchTab(1)">
+        <text class="tab-ico">☀</text>
+        <text>天气</text>
+      </view>
     </view>
   </view>
 </template>
 
 <script>
 import Lunar from '@/utils/lunar.js'
-import { getNow } from '@/utils/weather.js'
+import { getNow, getForecast7d } from '@/utils/weather.js'
 import { getHolidayType } from '@/utils/holiday.js'
 
 const WEEK = ['一', '二', '三', '四', '五', '六', '日']
+const WEEK7 = ['日', '一', '二', '三', '四', '五', '六']
 
 export default {
   data() {
     const now = new Date()
     return {
       statusBarHeight: 20,
+      tab: 0,
       year: now.getFullYear(),
       month: now.getMonth() + 1,
       today: { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() },
       weekStart: 1,
       cells: [],
-      weather: { icon: '🌤', text: '', temp: '--', feels: '--', humidity: '--', windDir: '', windScale: '', aqiText: '', city: '' }
+      city: '杭州',
+      weather: { icon: '🌤', text: '加载中', temp: '--', feels: '--', humidity: '--', windDir: '', windScale: '', aqiText: '' },
+      forecast: []
     }
   },
   computed: {
@@ -95,6 +160,7 @@ export default {
   },
   onShow() {
     this.weekStart = getApp().globalData.weekStart
+    this.city = getApp().globalData.city
     this.buildCells()
     this.loadWeather()
   },
@@ -105,16 +171,13 @@ export default {
       const offset = (first.getDay() - this.weekStart + 7) % 7
       const dim = new Date(y, m, 0).getDate()
       const cells = []
-      // 上月补位
       const prevDim = new Date(y, m - 1, 0).getDate()
       for (let i = offset - 1; i >= 0; i--) {
         let pd = prevDim - i, pm = m - 1, py = y
         if (pm === 0) { pm = 12; py-- }
         cells.push(this.makeCell(py, pm, pd, true))
       }
-      // 本月
       for (let d = 1; d <= dim; d++) cells.push(this.makeCell(y, m, d, false))
-      // 下月补位
       let nd = 1, nm = m + 1, ny = y
       if (nm === 13) { nm = 1; ny++ }
       while (cells.length < 42) cells.push(this.makeCell(ny, nm, nd++, true))
@@ -155,13 +218,30 @@ export default {
     openDay(cell) {
       uni.navigateTo({ url: `/pages/day/day?y=${cell.y}&m=${cell.m}&d=${cell.d}` })
     },
-    openToday() {
-      uni.navigateTo({ url: `/pages/day/day?y=${this.today.y}&m=${this.today.m}&d=${this.today.d}` })
+    openSettings() {
+      uni.navigateTo({ url: '/pages/settings/settings' })
+    },
+    switchTab(i) {
+      this.tab = i
+    },
+    onSwipeChange(e) {
+      this.tab = e.detail.current
     },
     async loadWeather() {
       try {
-        const w = await getNow(getApp().globalData.city)
+        const city = getApp().globalData.city
+        this.city = city
+        const [w, list] = await Promise.all([getNow(city), getForecast7d(city)])
         this.weather = w
+        const now = new Date()
+        this.forecast = list.map((f, i) => {
+          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
+          return {
+            ...f,
+            week: i === 0 ? '今天' : '周' + WEEK7[d.getDay()],
+            date: f.date.replace('-', '/')
+          }
+        })
       } catch (e) {
         // 忽略，保留占位
       }
@@ -172,17 +252,18 @@ export default {
 
 <style scoped>
 .page {
-  min-height: 100vh;
+  height: 100vh;
   background-color: var(--paper);
   color: var(--ink);
   box-sizing: border-box;
-  padding-left: 32rpx;
-  padding-right: 32rpx;
-  padding-bottom: 32rpx;
   display: flex;
   flex-direction: column;
 }
 
+.swiper { flex: 1; height: 0; }
+.tab-panel { height: 100%; box-sizing: border-box; padding-left: 32rpx; padding-right: 32rpx; padding-bottom: 32rpx; }
+
+/* ===== 日历 ===== */
 .cal-head {
   display: flex;
   align-items: flex-end;
@@ -200,6 +281,7 @@ export default {
   background: var(--surface); color: var(--ink); font-size: 40rpx; line-height: 64rpx;
   text-align: center;
 }
+.nav-btn.gear { font-size: 32rpx; }
 .today-btn {
   width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--vermilion);
   color: #fff; font-size: 28rpx; font-weight: 600; line-height: 68rpx; text-align: center;
@@ -239,14 +321,59 @@ export default {
 .cell.today .mark.term, .cell.today .mark.fest { color: #FFE3DB; }
 .cell.today .holiday { color: #FFE3DB; }
 
-.weather-card {
-  margin-top: 28rpx; border: 1rpx solid var(--border); border-radius: 32rpx; background: var(--surface);
-  padding: 28rpx 32rpx; display: flex; align-items: center; gap: 24rpx;
+/* ===== 天气 ===== */
+.w-head { display: flex; align-items: center; justify-content: space-between; padding: 28rpx 8rpx 4rpx; }
+.w-city { font-size: 36rpx; font-weight: 700; }
+.w-gear { font-size: 40rpx; color: var(--muted); padding: 0 8rpx; }
+
+.w-hero { display: flex; flex-direction: column; align-items: center; padding: 20rpx 0 8rpx; }
+.w-hero-icon { font-size: 120rpx; line-height: 1; }
+.w-hero-temp { font-size: 140rpx; font-weight: 600; line-height: 1.05; }
+.w-hero-desc { font-size: 30rpx; color: var(--ink-soft); margin-top: 12rpx; }
+
+.w-metrics {
+  display: flex; margin-top: 28rpx;
+  border: 1rpx solid var(--border); border-radius: 24rpx; background: var(--surface); overflow: hidden;
 }
-.w-icon { font-size: 64rpx; line-height: 1; }
-.w-temp { font-size: 80rpx; font-weight: 600; line-height: 1; font-family: "Iowan Old Style", "Songti SC", "Noto Serif SC", serif; }
-.w-info { flex: 1; display: flex; flex-direction: column; gap: 6rpx; }
-.w-desc { font-size: 30rpx; font-weight: 600; color: var(--ink); }
-.w-meta { font-size: 24rpx; color: var(--ink-soft); }
-.w-city { font-size: 24rpx; color: var(--muted); }
+.w-metric { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8rpx; padding: 22rpx 0; }
+.w-metric + .w-metric { border-left: 1rpx solid var(--border); }
+.w-m-label { font-size: 22rpx; color: var(--muted); }
+.w-m-val { font-size: 26rpx; font-weight: 600; color: var(--ink); }
+
+.sec-title { font-size: 26rpx; color: var(--muted); margin: 36rpx 8rpx 16rpx; font-weight: 600; letter-spacing: 0.05em; }
+.forecast { display: flex; flex-direction: column; }
+.f-row {
+  display: flex; align-items: center; gap: 20rpx; padding: 24rpx 28rpx;
+  background: var(--surface); border-bottom: 1rpx solid var(--border);
+}
+.f-row:first-child { border-radius: 32rpx 32rpx 0 0; }
+.f-row:last-child { border-radius: 0 0 32rpx 32rpx; border-bottom: none; }
+.f-day { width: 120rpx; display: flex; flex-direction: column; }
+.f-week { font-size: 26rpx; font-weight: 600; color: var(--ink); }
+.f-date { font-size: 22rpx; color: var(--muted); margin-top: 2rpx; }
+.f-icon { font-size: 44rpx; width: 60rpx; text-align: center; }
+.f-mid { flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+.f-text { font-size: 26rpx; color: var(--ink); font-weight: 500; }
+.f-meta { font-size: 22rpx; color: var(--ink-soft); }
+.f-temp { display: flex; align-items: baseline; gap: 6rpx; font-weight: 600; font-size: 28rpx; }
+.f-temp .lo { color: var(--weather-cold); }
+.f-temp .hi { color: var(--weather-hot); }
+.f-temp .slash { color: var(--muted); font-weight: 400; }
+
+/* ===== 底部 tab ===== */
+.tabbar {
+  flex-shrink: 0;
+  display: flex;
+  border-top: 1rpx solid var(--border);
+  background: var(--surface);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4rpx; padding: 12rpx 0 16rpx;
+  color: var(--muted); font-size: 22rpx;
+}
+.tab-ico { font-size: 40rpx; line-height: 1; }
+.tab.active { color: var(--vermilion); }
 </style>
