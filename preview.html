@@ -48,7 +48,9 @@
 
   /* ===== 月历 ===== */
   .cal-head{display:flex; align-items:flex-end; justify-content:space-between; padding:14px 4px 12px;}
+  .cal-head .ym{cursor:pointer;}
   .cal-head .ym h2{margin:0; font-size:26px; font-weight:700; letter-spacing:.01em; font-variant-numeric:tabular-nums;}
+  .cal-head .ym .ym-caret{margin-left:6px; font-size:14px; color:var(--muted); font-weight:600;}
   .cal-head .ym .lunar-year{margin-top:2px; font-size:13px; color:var(--ink-soft);}
   .cal-head .nav{display:flex; gap:8px;}
   .cal-head .nav button{
@@ -67,11 +69,12 @@
   .week-row span{text-align:center; font-size:12px; color:var(--muted); font-weight:500;}
   .week-row span.weekend{color:var(--vermilion);}
 
-  .grid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px;}
+  .grid{display:grid; grid-template-columns:repeat(7,1fr); border-top:1px solid var(--border); border-left:1px solid var(--border); border-radius:12px; overflow:hidden;}
   .cell{
-    aspect-ratio:1/0.98; border-radius:12px; cursor:pointer; position:relative;
+    aspect-ratio:1/0.98; box-sizing:border-box; cursor:pointer; position:relative;
     display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
     padding-top:5px; transition:background .12s, transform .12s;
+    border-right:1px solid var(--border); border-bottom:1px solid var(--border);
   }
   .cell:active{transform:scale(.96);}
   .cell .solar{font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; line-height:1.1;}
@@ -91,6 +94,18 @@
   .cell.selected:not(.today){background:var(--vermilion-soft); outline:1.5px solid var(--vermilion);}
   .cell.selected:not(.today) .solar{color:var(--vermilion);}
   .cell:hover:not(.today){background:var(--paper);}
+
+  /* 年月选择浮层 */
+  .ym-picker{position:absolute; inset:0; z-index:20; background:var(--paper); display:none; flex-direction:column; padding:20px 16px; box-sizing:border-box;}
+  .ym-picker.open{display:flex;}
+  .ym-picker .ymp-head{display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:18px;}
+  .ym-picker .ymp-head button{width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--ink); font-size:20px; cursor:pointer;}
+  .ym-picker .ymp-year{font-size:22px; font-weight:700; min-width:90px; text-align:center; font-variant-numeric:tabular-nums;}
+  .ym-picker .ymp-months{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .ym-picker .ymp-months button{padding:16px 0; border:1px solid var(--border); border-radius:12px; background:var(--surface); color:var(--ink); font-size:16px; cursor:pointer;}
+  .ym-picker .ymp-months button.cur{background:var(--vermilion); color:#fff; border-color:var(--vermilion);}
+  .ym-picker .ymp-months button:hover{background:var(--vermilion-soft);}
+  .ym-picker .ymp-close{align-self:center; margin-top:18px; padding:10px 34px; border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); border-radius:24px; font-size:15px; cursor:pointer;}
 
   /* 天气卡 */
   .weather-card{
@@ -487,6 +502,14 @@
     }
 
     // ---- 月历渲染 ----
+    function ympMonthsHtml(m){
+      var s = '';
+      for(var mi = 1; mi <= 12; mi++){
+        s += '<button data-ymm="'+mi+'"'+(mi===m?' class="cur"':'')+'>'+mi+'月</button>';
+      }
+      return s;
+    }
+
     function renderCal(){
       var el = document.getElementById('screen-cal');
       var y=state.y, m=state.m;
@@ -513,7 +536,7 @@
 
       el.innerHTML =
         '<div class="cal-head">'+
-          '<div class="ym"><h2>'+y+'年'+m+'月</h2><div class="lunar-year">'+fmtLunarYear(y,m)+'</div></div>'+
+          '<div class="ym" data-ym="1"><h2>'+y+'年'+m+'月<span class="ym-caret">▾</span></h2><div class="lunar-year">'+fmtLunarYear(y,m)+'</div></div>'+
           '<div class="nav">'+
             '<button data-nav="-1">‹</button>'+
             '<button class="today-btn" data-today="1">今</button>'+
@@ -530,6 +553,11 @@
             '<span class="w-meta">体感'+weather.feels+'° · 湿度'+weather.humidity+'% · '+weather.wind+' · 空气'+weather.aqiTxt+'</span>'+
           '</div>'+
           '<span class="w-city">杭州</span>'+
+        '</div>'+
+        '<div class="ym-picker">'+
+          '<div class="ymp-head"><button data-ymy="-1">‹</button><span class="ymp-year">'+y+'年</span><button data-ymy="1">›</button></div>'+
+          '<div class="ymp-months">'+ympMonthsHtml(m)+'</div>'+
+          '<button class="ymp-close" data-ymc="1">取消</button>'+
         '</div>';
 
       el.querySelectorAll('[data-nav]').forEach(function(b){
@@ -543,6 +571,29 @@
       });
       el.querySelectorAll('.cell[data-d]').forEach(function(c){
         c.onclick=function(){ var p=c.getAttribute('data-d').split('-').map(Number); state.sel={y:p[0],m:p[1],d:p[2]}; renderDay(); switchScreen('day'); };
+      });
+      el.querySelectorAll('[data-ym]').forEach(function(t){
+        t.onclick=function(){ el.querySelector('.ym-picker').classList.add('open'); };
+      });
+      el.querySelectorAll('[data-ymy]').forEach(function(b){
+        b.onclick=function(){
+          var yrEl=el.querySelector('.ymp-year');
+          var yr=parseInt(yrEl.textContent)+parseInt(b.getAttribute('data-ymy'));
+          if(yr<1900) yr=1900; if(yr>2100) yr=2100;
+          yrEl.textContent=yr+'年';
+        };
+      });
+      el.querySelectorAll('[data-ymm]').forEach(function(b){
+        b.onclick=function(){
+          var yr=parseInt(el.querySelector('.ymp-year').textContent);
+          var mm=parseInt(b.getAttribute('data-ymm'));
+          state.y=yr; state.m=mm;
+          state.sel={y:yr,m:mm,d:1};
+          renderCal();
+        };
+      });
+      el.querySelectorAll('[data-ymc]').forEach(function(b){
+        b.onclick=function(){ el.querySelector('.ym-picker').classList.remove('open'); };
       });
     }
 

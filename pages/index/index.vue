@@ -2,10 +2,15 @@
   <view class="page" :class="themeClass" :style="{ paddingTop: statusBarHeight + 'px' }">
     <!-- 头部 -->
     <view class="cal-head">
-      <view class="ym">
-        <text class="ym-title">{{ year }}年{{ month }}月</text>
-        <text class="ym-lunar">{{ lunarYearLabel }}</text>
-      </view>
+      <picker mode="date" fields="month" :value="pickerValue" :start="'1900-01'" :end="'2100-12'" @change="onPickMonth">
+        <view class="ym">
+          <view class="ym-row">
+            <text class="ym-title">{{ year }}年{{ month }}月</text>
+            <text class="ym-caret">▾</text>
+          </view>
+          <text class="ym-lunar">{{ lunarYearLabel }}</text>
+        </view>
+      </picker>
       <view class="nav">
         <view class="nav-btn" @click="prevMonth">‹</view>
         <view class="today-btn" @click="goToday">今</view>
@@ -78,6 +83,9 @@ export default {
     lunarYearLabel() {
       const info = Lunar.getDateInfo(this.year, this.month, 1)
       return info.supported ? info.yearGanZhi + '年 · 属' + info.zodiac : ''
+    },
+    pickerValue() {
+      return this.year + '-' + String(this.month).padStart(2, '0')
     }
   },
   onLoad() {
@@ -131,6 +139,13 @@ export default {
       else if (hType === 'work') { holiday = '班'; holidayCls = 'work' }
       return { y, m, d, cls, lunar, mark, markCls, holiday, holidayCls }
     },
+    onPickMonth(e) {
+      const v = (e && e.detail && e.detail.value) || this.pickerValue
+      const parts = v.split('-')
+      this.year = parseInt(parts[0])
+      this.month = parseInt(parts[1])
+      this.buildCells()
+    },
     prevMonth() { this.month--; if (this.month === 0) { this.month = 12; this.year-- } this.buildCells() },
     nextMonth() { this.month++; if (this.month === 13) { this.month = 1; this.year++ } this.buildCells() },
     goToday() {
@@ -175,7 +190,9 @@ export default {
   padding: 28rpx 8rpx 24rpx;
 }
 .ym { display: flex; flex-direction: column; }
+.ym-row { display: flex; align-items: center; gap: 8rpx; }
 .ym-title { font-size: 52rpx; font-weight: 700; line-height: 1.2; }
+.ym-caret { font-size: 28rpx; color: var(--muted); font-weight: 600; }
 .ym-lunar { margin-top: 6rpx; font-size: 26rpx; color: var(--ink-soft); }
 .nav { display: flex; align-items: center; gap: 16rpx; }
 .nav-btn {
@@ -192,11 +209,19 @@ export default {
 .week-item { flex: 1; text-align: center; font-size: 24rpx; color: var(--muted); font-weight: 500; }
 .week-item.weekend { color: var(--vermilion); }
 
-.grid { display: flex; flex-wrap: wrap; }
+.grid {
+  display: flex; flex-wrap: wrap;
+  border-top: 1rpx solid var(--border);
+  border-left: 1rpx solid var(--border);
+  border-radius: 16rpx;
+  overflow: hidden;
+}
 .cell {
-  width: 14.2857%; height: 104rpx; box-sizing: border-box; border-radius: 16rpx;
+  width: 14.2857%; height: 104rpx; box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center; padding-top: 10rpx;
   position: relative;
+  border-right: 1rpx solid var(--border);
+  border-bottom: 1rpx solid var(--border);
 }
 .cell:active { transform: scale(0.96); }
 .solar { font-size: 34rpx; font-weight: 600; line-height: 1.15; }
