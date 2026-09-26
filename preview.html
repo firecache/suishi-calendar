@@ -34,6 +34,7 @@
     border:1px solid #D8D0C2; border-radius:40px;
     box-shadow:0 30px 60px rgba(31,27,22,.18);
     display:flex; flex-direction:column; overflow:hidden; position:relative;
+    transform-origin:center top;
   }
   .statusbar{
     height:44px; flex:0 0 44px; display:flex; align-items:center; justify-content:space-between;
@@ -523,8 +524,10 @@
 
     // ---- 天气（模拟，确定性伪随机）----
     var WEATHER_ICON = {'晴':'☀','多云':'⛅','阴':'☁','小雨':'🌦','中雨':'🌧','雷阵雨':'⛈','雪':'❄'};
-    function mockWeather(y,m,d){
-      var seed = y*10000 + m*100 + d;
+    function mockWeather(y,m,d,city){
+      var h = 0, cs = String(city||'');
+      for(var ci=0; ci<cs.length; ci++) h = (h*31 + cs.charCodeAt(ci)) % 233280;
+      var seed = y*10000 + m*100 + d + h;
       function rnd(n){ seed = (seed*9301+49297)%233280; return (seed/233280); }
       var kinds = ['晴','多云','多云','阴','小雨','晴','多云','中雨','雷阵雨','晴','多云','雪'];
       var kind = kinds[Math.floor(rnd(1)*kinds.length)];
@@ -682,11 +685,11 @@
     function renderWeather(){
       var el = document.getElementById('screen-weather');
       var nd = new Date();
-      var w = mockWeather(nd.getFullYear(), nd.getMonth()+1, nd.getDate());
+      var w = mockWeather(nd.getFullYear(), nd.getMonth()+1, nd.getDate(), state.city);
       var fcHtml = '';
       for(var i=0;i<7;i++){
         var dd = new Date(nd.getFullYear(), nd.getMonth(), nd.getDate()+i);
-        var fw = mockWeather(dd.getFullYear(), dd.getMonth()+1, dd.getDate());
+        var fw = mockWeather(dd.getFullYear(), dd.getMonth()+1, dd.getDate(), state.city);
         var fdLabel = i===0 ? '今天' : WEEK[(dd.getDay()-state.weekStart+7)%7];
         fcHtml += '<div class="f-row"><div class="f-day"><span class="f-week">'+fdLabel+'</span><span class="f-date">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</span></div>'+
           '<span class="f-icon">'+fw.icon+'</span>'+
@@ -748,11 +751,11 @@
         '<div class="chip">属<b>'+info.zodiac+'</b></div>'
         : '';
 
-      var w = mockWeather(y,m,d);
+      var w = mockWeather(y,m,d,state.city);
       var fcHtml='';
       for(var i=0;i<7;i++){
         var dd = new Date(y,m-1,d+i);
-        var fw = mockWeather(dd.getFullYear(),dd.getMonth()+1,dd.getDate());
+        var fw = mockWeather(dd.getFullYear(),dd.getMonth()+1,dd.getDate(),state.city);
         var fdLabel = i===0?'今天':(WEEK[(dd.getDay()-state.weekStart+7)%7]);
         fcHtml += '<div class="row"><span class="fd">'+fdLabel+' '+dd.getDate()+'</span>'+
           '<span class="fi">'+fw.icon+'</span>'+
@@ -831,6 +834,16 @@
     renderWeather();
     renderDay();
     renderSet();
+
+    // 手机框自适应屏幕：保持 390×780 设计比例，整体缩放到适应当前窗口
+    function fitPhone(){
+      var phone = document.querySelector('.phone');
+      if(!phone) return;
+      var scale = Math.min(1, (window.innerWidth - 32) / 390, (window.innerHeight - 130) / 780);
+      phone.style.transform = 'scale(' + scale + ')';
+    }
+    window.addEventListener('resize', fitPhone);
+    fitPhone();
   })();
   </script>
 </body>

@@ -19,12 +19,18 @@ function iconOf(text) {
 // —— 确定性模拟天气（与 preview.html 一致，保证同日期结果稳定）——
 const KIND_POOL = ['晴', '多云', '多云', '阴', '小雨', '晴', '多云', '中雨', '雷阵雨', '晴', '多云', '雪']
 const MONTH_BASE = [2, 5, 12, 18, 24, 28, 30, 29, 25, 19, 11, 5]
-function seeded(y, m, d) {
-  let s = y * 10000 + m * 100 + d
+function hashCity(city) {
+  let h = 0
+  const s = String(city || '')
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 233280
+  return h
+}
+function seeded(y, m, d, salt) {
+  let s = y * 10000 + m * 100 + d + (salt || 0)
   return function () { s = (s * 9301 + 49297) % 233280; return s / 233280 }
 }
-function mockDay(y, m, d) {
-  const rnd = seeded(y, m, d)
+function mockDay(y, m, d, city) {
+  const rnd = seeded(y, m, d, hashCity(city))
   const text = KIND_POOL[Math.floor(rnd() * KIND_POOL.length)]
   const base = MONTH_BASE[m - 1]
   const tempMax = Math.round(base + rnd() * 6)
@@ -41,19 +47,19 @@ function mockDay(y, m, d) {
 
 function nowFromMock(city) {
   const d = new Date()
-  const m = mockDay(d.getFullYear(), d.getMonth() + 1, d.getDate())
+  const m = mockDay(d.getFullYear(), d.getMonth() + 1, d.getDate(), city)
   return {
     city, icon: m.icon, text: m.text,
     temp: m.tempMax, feels: m.feels, humidity: m.humidity,
     windDir: m.windDir, windScale: m.windScale, aqi: m.aqi, aqiText: m.aqiText
   }
 }
-function forecastFromMock() {
+function forecastFromMock(city) {
   const d = new Date()
   const list = []
   for (let i = 0; i < 7; i++) {
     const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i)
-    const m = mockDay(t.getFullYear(), t.getMonth() + 1, t.getDate())
+    const m = mockDay(t.getFullYear(), t.getMonth() + 1, t.getDate(), city)
     list.push({
       date: `${t.getMonth() + 1}-${t.getDate()}`,
       text: m.text, icon: m.icon, tempMax: m.tempMax, tempMin: m.tempMin,
@@ -117,10 +123,10 @@ export async function getNow(city) {
 // 7 日预报
 export async function getForecast7d(city) {
   city = city || config.DEFAULT_CITY
-  if (useDemo() || !apiKey()) return forecastFromMock()
+  if (useDemo() || !apiKey()) return forecastFromMock(city)
   try {
     const id = await locationId(city)
-    if (!id) return forecastFromMock()
+    if (!id) return forecastFromMock(city)
     const res = await request(FORECAST_URL, { location: id, key: apiKey() })
     return (res.daily || []).map((it) => ({
       date: `${it.fxMonth}-${it.fxDate}`,
@@ -128,7 +134,7 @@ export async function getForecast7d(city) {
       windDir: it.windDirDay, windScale: it.windScaleDay, humidity: it.humidity
     }))
   } catch (e) {
-    return forecastFromMock()
+    return forecastFromMock(city)
   }
 }
 
